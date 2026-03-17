@@ -11,10 +11,7 @@ impl Command for ExitCommand {
 
     fn execute(&self, _cmd: &ParsedCommand, ctx: &mut AppContext) {
         ctx.log_info("Shutting down...");
-        ctx.runtime.stop_all();
-        if let Some(rpc) = ctx.rpc_client.take() {
-            rpc.close();
-        }
+        ctx.disconnect();
         ctx.exit_requested = true;
     }
 }

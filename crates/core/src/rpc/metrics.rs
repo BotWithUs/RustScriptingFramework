@@ -36,15 +36,18 @@ impl RpcMetrics {
     /// Record a completed RPC call.
     pub fn record_call(&self, method: &str, duration: Duration, is_error: bool) {
         let mut stats = self.stats.lock().unwrap();
-        let entry = stats.entry(method.to_string()).or_insert_with(|| MethodStats {
-            call_count: 0,
-            total_time: Duration::ZERO,
-            error_count: 0,
-        });
-        entry.call_count += 1;
-        entry.total_time += duration;
-        if is_error {
-            entry.error_count += 1;
+        if let Some(entry) = stats.get_mut(method) {
+            entry.call_count += 1;
+            entry.total_time += duration;
+            if is_error {
+                entry.error_count += 1;
+            }
+        } else {
+            stats.insert(method.to_string(), MethodStats {
+                call_count: 1,
+                total_time: duration,
+                error_count: if is_error { 1 } else { 0 },
+            });
         }
     }
 

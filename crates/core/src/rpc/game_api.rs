@@ -85,17 +85,6 @@ fn rmpv_to_json(value: &rmpv::Value) -> serde_json::Value {
     }
 }
 
-/// Convert an rmpv map (Vec<(Value, Value)>) to a HashMap<String, serde_json::Value>.
-fn rmpv_map_to_json_map(pairs: &[(rmpv::Value, rmpv::Value)]) -> HashMap<String, serde_json::Value> {
-    pairs.iter().map(|(k, v)| {
-        let key = match k {
-            rmpv::Value::String(s) => s.as_str().unwrap_or_default().to_string(),
-            _ => k.to_string(),
-        };
-        (key, rmpv_to_json(v))
-    }).collect()
-}
-
 /// GameApi implementation that delegates all calls to RPC over named pipes.
 /// Equivalent to Java's GameAPIImpl.
 pub struct RpcGameApi {
@@ -266,7 +255,7 @@ impl RpcGameApi {
 }
 
 fn pairs_to_map(pairs: Vec<(rmpv::Value, rmpv::Value)>) -> HashMap<String, rmpv::Value> {
-    let mut map = HashMap::new();
+    let mut map = HashMap::with_capacity(pairs.len());
     for (k, v) in pairs {
         let key = match k {
             rmpv::Value::String(s) => s.into_str().unwrap_or_default().to_string(),

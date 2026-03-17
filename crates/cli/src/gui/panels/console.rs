@@ -63,7 +63,7 @@ impl GuiPanel for ConsolePanel {
         ui.separator();
 
         // Prompt
-        if ctx.connected {
+        if ctx.connected() {
             ui.text_colored(theme::GREEN, "\u{25CF}");
             ui.same_line_with_spacing(0.0, 4.0);
             ui.text("bot:");
@@ -99,7 +99,7 @@ impl GuiPanel for ConsolePanel {
 
             if !trimmed.is_empty() {
                 ctx.input_history.push(trimmed.clone());
-                ctx.history_index = ctx.input_history.len() as i32;
+                ctx.history_index = None;
                 ctx.execute_command(&trimmed);
             }
 
@@ -108,21 +108,27 @@ impl GuiPanel for ConsolePanel {
         }
 
         // History navigation with arrow keys when input is focused
-        if ui.is_item_focused() {
+        if ui.is_item_focused() && !ctx.input_history.is_empty() {
             if ui.is_key_pressed(imgui::Key::UpArrow) {
-                if !ctx.input_history.is_empty() && ctx.history_index > 0 {
-                    ctx.history_index -= 1;
-                    ctx.input_buffer = ctx.input_history[ctx.history_index as usize].clone();
-                }
+                let new_idx = match ctx.history_index {
+                    None => ctx.input_history.len() - 1,
+                    Some(i) if i > 0 => i - 1,
+                    Some(i) => i,
+                };
+                ctx.history_index = Some(new_idx);
+                ctx.input_buffer = ctx.input_history[new_idx].clone();
             }
             if ui.is_key_pressed(imgui::Key::DownArrow) {
-                if ctx.history_index < ctx.input_history.len() as i32 {
-                    ctx.history_index += 1;
-                    if ctx.history_index >= ctx.input_history.len() as i32 {
-                        ctx.input_buffer.clear();
-                    } else {
-                        ctx.input_buffer = ctx.input_history[ctx.history_index as usize].clone();
+                match ctx.history_index {
+                    Some(i) if i + 1 < ctx.input_history.len() => {
+                        ctx.history_index = Some(i + 1);
+                        ctx.input_buffer = ctx.input_history[i + 1].clone();
                     }
+                    Some(_) => {
+                        ctx.history_index = None;
+                        ctx.input_buffer.clear();
+                    }
+                    None => {}
                 }
             }
         }

@@ -15,7 +15,7 @@ impl StatusBar {
         ui.separator();
 
         // Connection indicator dot
-        if ctx.connected {
+        if ctx.connected() {
             ui.text_colored(theme::GREEN, "\u{25CF}");
         } else {
             ui.text_colored(theme::RED, "\u{25CF}");
@@ -24,7 +24,7 @@ impl StatusBar {
         ui.same_line_with_spacing(0.0, 6.0);
 
         // Connection name
-        if ctx.connected {
+        if ctx.connected() {
             ui.text_colored(theme::CYAN, &ctx.pipe_name);
         } else {
             ui.text_colored(theme::DIM_TEXT, "disconnected");

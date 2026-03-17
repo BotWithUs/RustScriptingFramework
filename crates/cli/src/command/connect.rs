@@ -34,7 +34,7 @@ impl Command for ConnectCommand {
 }
 
 fn show_status(ctx: &mut AppContext) {
-    if ctx.connected {
+    if ctx.connected() {
         ctx.log_info(format!("Connected to: {}", ctx.pipe_name));
 
         // Try to get account info
@@ -74,7 +74,9 @@ fn show_status(ctx: &mut AppContext) {
                     );
                 }
             }
-            Err(_) => {}
+            Err(e) => {
+                tracing::debug!("Could not fetch world info: {}", e);
+            }
         }
     } else {
         ctx.log_warn("Not connected. Use 'connect <pipe_name>' or 'connect scan' to find pipes.");
@@ -82,20 +84,14 @@ fn show_status(ctx: &mut AppContext) {
 }
 
 fn disconnect(ctx: &mut AppContext) {
-    if !ctx.connected {
+    if !ctx.connected() {
         ctx.log_warn("Not connected.");
         return;
     }
 
-    // Stop all scripts
-    ctx.runtime.stop_all();
-
-    // Close RPC
-    if let Some(rpc) = ctx.rpc_client.take() {
-        rpc.close();
-    }
-    ctx.connected = false;
-    ctx.log_success(format!("Disconnected from '{}'.", ctx.pipe_name));
+    let pipe = ctx.pipe_name.clone();
+    ctx.disconnect();
+    ctx.log_success(format!("Disconnected from '{}'.", pipe));
 }
 
 fn scan_pipes(ctx: &mut AppContext, filter: &str) {
@@ -117,12 +113,9 @@ fn scan_pipes(ctx: &mut AppContext, filter: &str) {
 
 fn do_connect(ctx: &mut AppContext, pipe_name: &str) {
     // Disconnect existing connection first
-    if ctx.connected {
-        ctx.runtime.stop_all();
-        if let Some(rpc) = ctx.rpc_client.take() {
-            rpc.close();
-        }
+    if ctx.connected() {
         ctx.log_info(format!("Disconnected from '{}'.", ctx.pipe_name));
+        ctx.disconnect();
     }
 
     ctx.log_info(format!("Connecting to '{}'...", pipe_name));
@@ -132,7 +125,6 @@ fn do_connect(ctx: &mut AppContext, pipe_name: &str) {
         Ok(()) => {}
         Err(e) => {
             ctx.log_error(format!("Failed to connect pipe: {}", e));
-            ctx.connected = false;
             return;
         }
     }
@@ -162,5 +154,4 @@ fn do_connect(ctx: &mut AppContext, pipe_name: &str) {
     ctx.pipe_name = pipe_name.to_string();
     ctx.game = Arc::new(api);
     ctx.rpc_client = Some(rpc);
-    ctx.connected = true;
 }

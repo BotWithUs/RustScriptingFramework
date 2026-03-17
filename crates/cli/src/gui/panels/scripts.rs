@@ -28,7 +28,7 @@ impl GuiPanel for ScriptsPanel {
         ui.separator();
         ui.spacing();
 
-        if !ctx.connected {
+        if !ctx.connected() {
             ui.text_colored(theme::DIM_TEXT, "Offline mode - using stub API.");
             ui.spacing();
         }

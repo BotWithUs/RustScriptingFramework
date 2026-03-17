@@ -4,7 +4,7 @@ use crate::rpc::pipe::{PipeClient, PipeError};
 use crate::rpc::retry::RetryPolicy;
 use std::collections::HashMap;
 use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
-use std::sync::{Arc, Condvar, Mutex};
+use std::sync::{Arc, Mutex};
 use std::time::{Duration, Instant};
 use thiserror::Error;
 use tracing;
@@ -46,15 +46,9 @@ pub struct RpcClient {
     retry_policy: RetryPolicy,
     metrics: Arc<RpcMetrics>,
     event_handler: Arc<Mutex<Option<EventHandler>>>,
-    connection_name: Arc<Mutex<String>>,
 
-    // Synchronization between reader thread and RPC callers.
     // The pipe_lock ensures only one thread accesses the pipe at a time.
-    // data_available signals the reader that data may be ready.
     pipe_lock: Arc<Mutex<()>>,
-    data_available: Arc<(Mutex<bool>, Condvar)>,
-
-    reader_handle: Mutex<Option<std::thread::JoinHandle<()>>>,
 }
 
 impl RpcClient {
@@ -67,10 +61,7 @@ impl RpcClient {
             retry_policy: RetryPolicy::NONE,
             metrics: Arc::new(RpcMetrics::new()),
             event_handler: Arc::new(Mutex::new(None)),
-            connection_name: Arc::new(Mutex::new(String::new())),
             pipe_lock: Arc::new(Mutex::new(())),
-            data_available: Arc::new((Mutex::new(false), Condvar::new())),
-            reader_handle: Mutex::new(None),
         }
     }
 
@@ -90,82 +81,18 @@ impl RpcClient {
         *h = Some(Arc::new(handler));
     }
 
-    pub fn set_connection_name(&self, name: impl Into<String>) {
-        let mut n = self.connection_name.lock().unwrap();
-        *n = name.into();
-    }
-
     pub fn metrics(&self) -> &RpcMetrics {
         &self.metrics
     }
 
-    /// Start the background reader thread.
+    /// Mark the client as active.
     pub fn start(&self) {
         self.running.store(true, Ordering::SeqCst);
-
-        let pipe = self.pipe.clone();
-        let pipe_lock = self.pipe_lock.clone();
-        let running = self.running.clone();
-        let _event_handler = self.event_handler.clone();
-        let data_available = self.data_available.clone();
-
-        let handle = std::thread::Builder::new()
-            .name("rpc-reader".into())
-            .spawn(move || {
-                tracing::debug!("RPC reader thread started");
-                while running.load(Ordering::SeqCst) {
-                    // Wait for data or timeout
-                    {
-                        let (lock, cvar) = &*data_available;
-                        let guard = lock.lock().unwrap();
-                        let _ = cvar.wait_timeout(guard, Duration::from_millis(5)).unwrap();
-                    }
-
-                    if !running.load(Ordering::SeqCst) {
-                        break;
-                    }
-
-                    // Try to acquire pipe lock (non-blocking) to drain messages
-                    if let Ok(_guard) = pipe_lock.try_lock() {
-                        let pipe_guard = pipe.lock().unwrap();
-                        // Only read if pipe indicates data might be available
-                        if pipe_guard.is_open() {
-                            // Try to read a message with a very short effective timeout.
-                            // Since we can't do non-blocking reads on sync pipes easily,
-                            // the reader thread primarily handles events pushed between
-                            // RPC calls. During active RPC calls, the caller thread
-                            // reads directly.
-                            // For now, this thread signals availability.
-                        }
-                    }
-                }
-                tracing::debug!("RPC reader thread stopped");
-            })
-            .expect("Failed to start RPC reader thread");
-
-        let mut rh = self.reader_handle.lock().unwrap();
-        *rh = Some(handle);
     }
 
-    /// Stop the client and reader thread.
+    /// Stop the client and close the pipe.
     pub fn close(&self) {
         self.running.store(false, Ordering::SeqCst);
-
-        // Wake up the reader thread
-        let (lock, cvar) = &*self.data_available;
-        {
-            let mut ready = lock.lock().unwrap();
-            *ready = true;
-        }
-        cvar.notify_all();
-
-        // Wait for reader thread
-        let mut rh = self.reader_handle.lock().unwrap();
-        if let Some(handle) = rh.take() {
-            let _ = handle.join();
-        }
-
-        // Close pipe
         let mut pipe = self.pipe.lock().unwrap();
         pipe.close();
     }

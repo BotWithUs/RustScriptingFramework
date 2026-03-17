@@ -10,7 +10,7 @@ impl Command for MetricsCommand {
     fn usage(&self) -> &str { "metrics [reset]" }
 
     fn execute(&self, cmd: &ParsedCommand, ctx: &mut AppContext) {
-        if !ctx.connected {
+        if !ctx.connected() {
             ctx.log_error("Not connected - no metrics available.");
             return;
         }

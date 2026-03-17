@@ -9,7 +9,7 @@ impl Command for PingCommand {
     fn usage(&self) -> &str { "ping" }
 
     fn execute(&self, _cmd: &ParsedCommand, ctx: &mut AppContext) {
-        if !ctx.connected {
+        if !ctx.connected() {
             ctx.log_error("Not connected to any game client.");
             return;
         }

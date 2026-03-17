@@ -110,19 +110,17 @@ impl ScriptRuntime {
 
     /// Stop all running scripts.
     pub fn stop_all(&mut self) {
-        let names: Vec<String> = self.runners.keys().cloned().collect();
-        for name in names {
-            self.stop(&name);
+        for runner in self.runners.values_mut() {
+            if runner.is_running() {
+                runner.stop();
+            }
         }
     }
 
     /// Wait for all scripts to stop.
     pub async fn await_all_stopped(&mut self, timeout: std::time::Duration) {
-        let names: Vec<String> = self.runners.keys().cloned().collect();
-        for name in names {
-            if let Some(runner) = self.runners.get_mut(&name) {
-                runner.await_stop(timeout).await;
-            }
+        for runner in self.runners.values_mut() {
+            runner.await_stop(timeout).await;
         }
     }
 
@@ -143,6 +141,16 @@ impl ScriptRuntime {
             .filter(|runner| runner.is_running())
             .map(|runner| ScriptInfo::from_manifest(runner.manifest(), true))
             .collect()
+    }
+
+    /// Count of running scripts (no allocation).
+    pub fn running_count(&self) -> usize {
+        self.runners.values().filter(|r| r.is_running()).count()
+    }
+
+    /// Count of all registered scripts (no allocation).
+    pub fn total_count(&self) -> usize {
+        self.runners.len()
     }
 
     /// Check if a script is running.

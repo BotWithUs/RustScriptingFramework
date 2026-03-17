@@ -91,23 +91,4 @@ impl CommandRegistry {
     pub fn all(&self) -> &[Box<dyn Command>] {
         &self.commands
     }
-
-    pub fn execute_line(&self, line: &str, ctx: &mut AppContext) {
-        let trimmed = line.trim();
-        if trimmed.is_empty() {
-            return;
-        }
-
-        // Echo the command
-        ctx.log(format!("> {}", trimmed), crate::gui::theme::YELLOW);
-
-        let parsed = parse_command(trimmed);
-        match self.resolve(&parsed.name) {
-            Some(cmd) => cmd.execute(&parsed, ctx),
-            None => ctx.log_error(format!(
-                "Unknown command: '{}'. Type 'help' for available commands.",
-                parsed.name
-            )),
-        }
-    }
 }

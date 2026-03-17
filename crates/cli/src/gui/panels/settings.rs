@@ -29,7 +29,7 @@ impl GuiPanel for SettingsPanel {
 
         ui.text_colored(theme::DIM_TEXT, "Status:");
         ui.same_line();
-        if ctx.connected {
+        if ctx.connected() {
             ui.text_colored(theme::GREEN, "Connected");
         } else {
             ui.text_colored(theme::RED, "Disconnected (offline mode)");

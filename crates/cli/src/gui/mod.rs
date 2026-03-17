@@ -143,7 +143,7 @@ impl ApplicationHandler for App {
             .expect("Failed to create renderer");
 
         // Log initial state
-        if self.app_ctx.connected {
+        if self.app_ctx.connected() {
             self.app_ctx
                 .log_success(format!("Connected to game pipe: {}", self.app_ctx.pipe_name));
         } else {
@@ -188,10 +188,7 @@ impl ApplicationHandler for App {
 
         match event {
             WindowEvent::CloseRequested => {
-                self.app_ctx.runtime.stop_all();
-                if let Some(rpc) = self.app_ctx.rpc_client.take() {
-                    rpc.close();
-                }
+                self.app_ctx.disconnect();
                 event_loop.exit();
             }
             WindowEvent::Resized(new_size) => {
@@ -278,7 +275,7 @@ pub fn run(app_ctx: AppContext) -> Result<()> {
 }
 
 fn window_title(ctx: &AppContext) -> String {
-    if ctx.connected {
+    if ctx.connected() {
         format!("BotWithUs \u{2014} {}", ctx.pipe_name)
     } else {
         "BotWithUs \u{2014} disconnected".to_string()
