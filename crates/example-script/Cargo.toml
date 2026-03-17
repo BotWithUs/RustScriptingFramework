@@ -1,0 +1,12 @@
+[package]
+name = "example-script"
+version.workspace = true
+edition.workspace = true
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+bot-api = { workspace = true }
+bot-macros = { workspace = true }
+serde_json = { workspace = true }

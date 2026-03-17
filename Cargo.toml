@@ -1,0 +1,40 @@
+[workspace]
+resolver = "2"
+members = [
+    "crates/api",
+    "crates/core",
+    "crates/macros",
+    "crates/cli",
+    "crates/example-script",
+]
+
+[workspace.package]
+version = "0.1.0"
+edition = "2021"
+license = "MIT"
+
+[workspace.dependencies]
+bot-api = { path = "crates/api" }
+bot-core = { path = "crates/core" }
+bot-macros = { path = "crates/macros" }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+tokio = { version = "1", features = ["full"] }
+thiserror = "2"
+anyhow = "1"
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+dashmap = "6"
+libloading = "0.8"
+rmp-serde = "1"
+rmpv = { version = "1", features = ["with-serde"] }
+clap = { version = "4", features = ["derive"] }
+uuid = { version = "1", features = ["v4"] }
+imgui = { version = "0.12", features = ["tables-api"] }
+imgui-glow-renderer = "0.13"
+imgui-winit-support = "0.13"
+winit = "0.30"
+glutin = "0.32"
+glutin-winit = "0.5"
+glow = "0.14"
+raw-window-handle = "0.6"

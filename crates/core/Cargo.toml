@@ -1,0 +1,17 @@
+[package]
+name = "bot-core"
+version.workspace = true
+edition.workspace = true
+
+[dependencies]
+bot-api = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+tokio = { workspace = true }
+thiserror = { workspace = true }
+tracing = { workspace = true }
+dashmap = { workspace = true }
+libloading = { workspace = true }
+rmp-serde = { workspace = true }
+rmpv = { workspace = true }
+uuid = { workspace = true }
